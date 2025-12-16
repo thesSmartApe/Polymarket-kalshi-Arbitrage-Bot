@@ -1,0 +1,39 @@
+[package]
+name = "arb-bot"
+version = "2.0.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+base64 = "0.22"
+chrono = "0.4"
+dotenvy = "0.15"
+ethers = { version = "2.0", features = ["legacy"] }
+futures-util = "0.3"
+hmac = "0.12"
+rand = "0.8"
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+rsa = { version = "0.9", features = ["sha2"] }
+pkcs1 = { version = "0.7", features = ["pem"] }
+serde = { version = "1.0", features = ["derive", "rc"] }
+serde_json = "1.0"
+sha2 = "0.10"
+tokio = { version = "1.0", features = ["full"] }
+tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+rustc-hash = "2.0"
+tiny-keccak = { version = "2.0", features = ["keccak"] }
+governor = "0.6"
+nonzero_ext = "0.3"
+arrayvec = "0.7"
+wide = "0.7"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+hex = "0.4"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
