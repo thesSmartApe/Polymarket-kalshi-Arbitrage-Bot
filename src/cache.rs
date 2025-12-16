@@ -42,6 +42,7 @@ where
         .collect())
 }
 
+#[allow(dead_code)]
 impl TeamCache {
     /// Load cache from JSON file
     pub fn load() -> Self {

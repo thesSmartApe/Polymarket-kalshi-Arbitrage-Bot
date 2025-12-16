@@ -132,6 +132,7 @@ fn clob_auth_digest(chain_id: u64, address_str: &str, timestamp: u64, nonce: u64
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct OrderArgs {
     pub token_id: String,
     pub price: f64,
@@ -339,6 +340,7 @@ fn get_exchange_address(chain_id: u64, neg_risk: bool) -> Result<String> {
 
 /// Order type for Polymarket
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
 pub enum PolyOrderType {
     /// Good Till Cancelled (default)
     GTC,
@@ -367,6 +369,7 @@ impl PolyOrderType {
 
 /// Response from GET /data/order/{order_id}
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct PolymarketOrderResponse {
     pub id: String,
     pub status: String,
@@ -527,14 +530,17 @@ impl PolymarketAsyncClient {
         Ok(val["neg_risk"].as_bool().unwrap_or(false))
     }
 
+    #[allow(dead_code)]
     pub fn wallet_address(&self) -> &str {
         &self.wallet_address_str
     }
 
+    #[allow(dead_code)]
     pub fn funder(&self) -> &str {
         &self.funder
     }
 
+    #[allow(dead_code)]
     pub fn wallet(&self) -> &LocalWallet {
         &self.wallet
     }

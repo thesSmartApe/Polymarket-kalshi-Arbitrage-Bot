@@ -23,6 +23,7 @@ pub struct PositionLeg {
     pub avg_price: f64,
 }
 
+#[allow(dead_code)]
 impl PositionLeg {
     pub fn add(&mut self, contracts: f64, price: f64) {
         let new_cost = contracts * price;
@@ -84,6 +85,7 @@ pub struct ArbPosition {
     pub realized_pnl: Option<f64>,
 }
 
+#[allow(dead_code)]
 impl ArbPosition {
     pub fn new(market_id: &str, description: &str) -> Self {
         Self {
@@ -148,6 +150,7 @@ impl ArbPosition {
 
 /// Summary of all positions
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[allow(dead_code)]
 pub struct PositionSummary {
     /// Total cost basis across all open positions
     pub total_cost_basis: f64,
@@ -202,6 +205,7 @@ impl Default for PositionTracker {
     }
 }
 
+#[allow(dead_code)]
 impl PositionTracker {
     pub fn new() -> Self {
         Self {
@@ -390,7 +394,9 @@ pub struct FillRecord {
     pub contracts: f64,
     pub price: f64,
     pub fees: f64,
+    #[allow(dead_code)]
     pub order_id: String,
+    #[allow(dead_code)]
     pub timestamp: String,
 }
 
@@ -419,8 +425,10 @@ impl FillRecord {
     }
 }
 
+#[allow(dead_code)]
 pub type SharedPositionTracker = Arc<RwLock<PositionTracker>>;
 
+#[allow(dead_code)]
 pub fn create_position_tracker() -> SharedPositionTracker {
     Arc::new(RwLock::new(PositionTracker::load()))
 }

@@ -360,6 +360,7 @@ impl GlobalState {
 
     /// Get market by Kalshi ticker hash (O(1))
     #[inline(always)]
+    #[allow(dead_code)]
     pub fn get_by_kalshi_hash(&self, hash: u64) -> Option<&AtomicMarketState> {
         let id = *self.kalshi_to_id.get(&hash)?;
         Some(&self.markets[id as usize])
@@ -367,6 +368,7 @@ impl GlobalState {
 
     /// Get market by Poly YES token hash (O(1))
     #[inline(always)]
+    #[allow(dead_code)]
     pub fn get_by_poly_yes_hash(&self, hash: u64) -> Option<&AtomicMarketState> {
         let id = *self.poly_yes_to_id.get(&hash)?;
         Some(&self.markets[id as usize])
@@ -374,6 +376,7 @@ impl GlobalState {
 
     /// Get market by Poly NO token hash (O(1))
     #[inline(always)]
+    #[allow(dead_code)]
     pub fn get_by_poly_no_hash(&self, hash: u64) -> Option<&AtomicMarketState> {
         let id = *self.poly_no_to_id.get(&hash)?;
         Some(&self.markets[id as usize])
@@ -381,18 +384,21 @@ impl GlobalState {
 
     /// Get market_id by Poly YES token hash
     #[inline(always)]
+    #[allow(dead_code)]
     pub fn id_by_poly_yes_hash(&self, hash: u64) -> Option<u16> {
         self.poly_yes_to_id.get(&hash).copied()
     }
 
     /// Get market_id by Poly NO token hash
     #[inline(always)]
+    #[allow(dead_code)]
     pub fn id_by_poly_no_hash(&self, hash: u64) -> Option<u16> {
         self.poly_no_to_id.get(&hash).copied()
     }
 
     /// Get market_id by Kalshi ticker hash
     #[inline(always)]
+    #[allow(dead_code)]
     pub fn id_by_kalshi_hash(&self, hash: u64) -> Option<u16> {
         self.kalshi_to_id.get(&hash).copied()
     }
@@ -430,6 +436,7 @@ pub fn fxhash_str(s: &str) -> u64 {
 // === Platform Enum ===
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
 pub enum Platform {
     Kalshi,
     Polymarket,
@@ -1173,6 +1180,7 @@ mod tests {
 pub struct KalshiEventsResponse {
     pub events: Vec<KalshiEvent>,
     #[serde(default)]
+    #[allow(dead_code)]
     pub cursor: Option<String>,
 }
 
@@ -1181,6 +1189,7 @@ pub struct KalshiEvent {
     pub event_ticker: String,
     pub title: String,
     #[serde(default)]
+    #[allow(dead_code)]
     pub sub_title: Option<String>,
 }
 
@@ -1190,6 +1199,7 @@ pub struct KalshiMarketsResponse {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct KalshiMarket {
     pub ticker: String,
     pub title: String,
@@ -1208,6 +1218,7 @@ pub struct KalshiMarket {
 // === Polymarket/Gamma API Types ===
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct GammaMarket {
     pub slug: Option<String>,
     pub question: Option<String>,
@@ -1227,6 +1238,7 @@ pub struct DiscoveryResult {
     pub pairs: Vec<MarketPair>,
     pub kalshi_events_found: usize,
     pub poly_matches: usize,
+    #[allow(dead_code)]
     pub poly_misses: usize,
     pub errors: Vec<String>,
 }

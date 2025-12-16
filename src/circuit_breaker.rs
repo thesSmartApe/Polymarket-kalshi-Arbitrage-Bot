@@ -104,6 +104,7 @@ pub struct MarketPosition {
     pub poly_no: i64,
 }
 
+#[allow(dead_code)]
 impl MarketPosition {
     pub fn net_position(&self) -> i64 {
         // Net exposure: positive = long YES, negative = long NO
@@ -160,6 +161,7 @@ impl CircuitBreaker {
     }
     
     /// Check if trading is allowed
+    #[allow(dead_code)]
     pub fn is_trading_allowed(&self) -> bool {
         if !self.config.enabled {
             return true;
@@ -243,11 +245,12 @@ impl CircuitBreaker {
     }
     
     /// Record P&L update (for tracking without execution)
+    #[allow(dead_code)]
     pub fn record_pnl(&self, pnl: f64) {
         let pnl_cents = (pnl * 100.0) as i64;
         self.daily_pnl_cents.fetch_add(pnl_cents, Ordering::SeqCst);
     }
-    
+
     /// Trip the circuit breaker
     pub async fn trip(&self, reason: TripReason) {
         if !self.config.enabled {
@@ -262,12 +265,14 @@ impl CircuitBreaker {
     }
     
     /// Manually halt trading
+    #[allow(dead_code)]
     pub async fn halt(&self) {
         warn!("[CB] Manual halt triggered");
         self.trip(TripReason::ManualHalt).await;
     }
-    
+
     /// Reset the circuit breaker (after cooldown or manual reset)
+    #[allow(dead_code)]
     pub async fn reset(&self) {
         info!("[CB] Circuit breaker reset");
         self.halted.store(false, Ordering::SeqCst);
@@ -275,19 +280,21 @@ impl CircuitBreaker {
         *self.trip_reason.write().await = None;
         self.consecutive_errors.store(0, Ordering::SeqCst);
     }
-    
+
     /// Reset daily P&L (call at midnight)
+    #[allow(dead_code)]
     pub fn reset_daily_pnl(&self) {
         info!("[CB] Daily P&L reset");
         self.daily_pnl_cents.store(0, Ordering::SeqCst);
     }
-    
+
     /// Check if cooldown has elapsed and auto-reset if so
+    #[allow(dead_code)]
     pub async fn check_cooldown(&self) -> bool {
         if !self.halted.load(Ordering::SeqCst) {
             return true;
         }
-        
+
         let tripped_at = self.tripped_at.read().await;
         if let Some(tripped) = *tripped_at {
             if tripped.elapsed() > Duration::from_secs(self.config.cooldown_secs) {
@@ -296,11 +303,12 @@ impl CircuitBreaker {
                 return true;
             }
         }
-        
+
         false
     }
-    
+
     /// Get current status
+    #[allow(dead_code)]
     pub async fn status(&self) -> CircuitBreakerStatus {
         let positions = self.positions.read().await;
         let total_position: i64 = positions.values().map(|p| p.total_contracts()).sum();
@@ -318,6 +326,7 @@ impl CircuitBreaker {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct CircuitBreakerStatus {
     pub enabled: bool,
     pub halted: bool,

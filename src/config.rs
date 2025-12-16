@@ -30,6 +30,7 @@ pub const WS_RECONNECT_DELAY_SECS: u64 = 5;
 pub const ENABLED_LEAGUES: &[&str] = &[];
 
 /// Price logging enabled (set PRICE_LOGGING=1 to enable)
+#[allow(dead_code)]
 pub fn price_logging_enabled() -> bool {
     static CACHED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *CACHED.get_or_init(|| {

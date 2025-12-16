@@ -23,6 +23,7 @@ use crate::types::{
 #[derive(Deserialize, Debug)]
 pub struct BookSnapshot {
     pub asset_id: String,
+    #[allow(dead_code)]
     pub bids: Vec<PriceLevel>,
     pub asks: Vec<PriceLevel>,
 }
@@ -354,30 +355,30 @@ async fn process_price_change(
     // Check YES token
     if let Some(&market_id) = state.poly_yes_to_id.get(&token_hash) {
         let market = &state.markets[market_id as usize];
-        let (current_yes, _, current_yes_size, _) = market.poly.load();
+        let (current_yes, _, _, _) = market.poly.load();
 
         // Only update if new price is better (lower)
         if price < current_yes || current_yes == 0 {
-            market.poly.update_yes(price, current_yes_size);
+            // price_change events don't include size - invalidate to prevent
+            // executing on stale liquidity. Next book snapshot will repopulate.
+            market.poly.update_yes(price, 0);
 
-            let arb_mask = market.check_arbs(threshold_cents);
-            if arb_mask != 0 {
-                send_arb_request(market_id, market, arb_mask, exec_tx, clock).await;
-            }
+            // Don't trigger arb on price_change since size is unknown.
+            // Wait for book snapshot with actual liquidity data.
         }
     }
     // Check NO token
     else if let Some(&market_id) = state.poly_no_to_id.get(&token_hash) {
         let market = &state.markets[market_id as usize];
-        let (_, current_no, _, current_no_size) = market.poly.load();
+        let (_, current_no, _, _) = market.poly.load();
 
         if price < current_no || current_no == 0 {
-            market.poly.update_no(price, current_no_size);
+            // price_change events don't include size - invalidate to prevent
+            // executing on stale liquidity. Next book snapshot will repopulate.
+            market.poly.update_no(price, 0);
 
-            let arb_mask = market.check_arbs(threshold_cents);
-            if arb_mask != 0 {
-                send_arb_request(market_id, market, arb_mask, exec_tx, clock).await;
-            }
+            // Don't trigger arb on price_change since size is unknown.
+            // Wait for book snapshot with actual liquidity data.
         }
     }
 }

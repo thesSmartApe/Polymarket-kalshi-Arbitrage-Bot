@@ -130,17 +130,18 @@ pub struct KalshiOrderDetails {
     pub maker_fill_cost: Option<i64>,
 }
 
+#[allow(dead_code)]
 impl KalshiOrderDetails {
     /// Total filled contracts
     pub fn filled_count(&self) -> i64 {
         self.taker_fill_count.unwrap_or(0) + self.maker_fill_count.unwrap_or(0)
     }
-    
+
     /// Check if order was fully filled
     pub fn is_filled(&self) -> bool {
         self.status == "executed" || self.remaining_count == Some(0)
     }
-    
+
     /// Check if order was partially filled
     pub fn is_partial(&self) -> bool {
         self.filled_count() > 0 && !self.is_filled()
