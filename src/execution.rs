@@ -296,7 +296,7 @@ impl ExecutionEngine {
                     req.no_price as i64,
                     contracts,
                 );
-                let poly_fut = self.poly_async.buy_ioc(
+                let poly_fut = self.poly_async.buy_fak(
                     &pair.poly_yes_token,
                     cents_to_price(req.yes_price),
                     contracts as f64,
@@ -313,7 +313,7 @@ impl ExecutionEngine {
                     req.yes_price as i64,
                     contracts,
                 );
-                let poly_fut = self.poly_async.buy_ioc(
+                let poly_fut = self.poly_async.buy_fak(
                     &pair.poly_no_token,
                     cents_to_price(req.no_price),
                     contracts as f64,
@@ -324,12 +324,12 @@ impl ExecutionEngine {
 
             // === SAME-PLATFORM: Poly YES + Poly NO ===
             ArbType::PolyOnly => {
-                let yes_fut = self.poly_async.buy_ioc(
+                let yes_fut = self.poly_async.buy_fak(
                     &pair.poly_yes_token,
                     cents_to_price(req.yes_price),
                     contracts as f64,
                 );
-                let no_fut = self.poly_async.buy_ioc(
+                let no_fut = self.poly_async.buy_fak(
                     &pair.poly_no_token,
                     cents_to_price(req.no_price),
                     contracts as f64,
@@ -496,7 +496,7 @@ impl ExecutionEngine {
                 info!("[EXEC] 🔄 Waiting 2s for Poly settlement before auto-close ({} {} contracts)", excess, side);
                 tokio::time::sleep(Duration::from_secs(2)).await;
 
-                match poly_async.sell_ioc(token, close_price, excess as f64).await {
+                match poly_async.sell_fak(token, close_price, excess as f64).await {
                     Ok(fill) => log_close_pnl("Poly", fill.filled_size as i64, (fill.fill_cost * 100.0) as i64),
                     Err(e) => warn!("[EXEC] ⚠️ Failed to close Poly excess: {}", e),
                 }
@@ -526,7 +526,7 @@ impl ExecutionEngine {
                     info!("[EXEC] 🔄 Waiting 2s for Poly settlement before auto-close ({} yes contracts)", excess);
                     tokio::time::sleep(Duration::from_secs(2)).await;
 
-                    match poly_async.sell_ioc(&poly_yes_token, close_price, excess as f64).await {
+                    match poly_async.sell_fak(&poly_yes_token, close_price, excess as f64).await {
                         Ok(fill) => log_close_pnl("Poly", fill.filled_size as i64, (fill.fill_cost * 100.0) as i64),
                         Err(e) => warn!("[EXEC] ⚠️ Failed to close Poly excess: {}", e),
                     }
@@ -560,7 +560,7 @@ impl ExecutionEngine {
                     info!("[EXEC] 🔄 Waiting 2s for Poly settlement before auto-close ({} no contracts)", excess);
                     tokio::time::sleep(Duration::from_secs(2)).await;
 
-                    match poly_async.sell_ioc(&poly_no_token, close_price, excess as f64).await {
+                    match poly_async.sell_fak(&poly_no_token, close_price, excess as f64).await {
                         Ok(fill) => log_close_pnl("Poly", fill.filled_size as i64, (fill.fill_cost * 100.0) as i64),
                         Err(e) => warn!("[EXEC] ⚠️ Failed to close Poly excess: {}", e),
                     }

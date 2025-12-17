@@ -335,7 +335,7 @@ fn get_exchange_address(chain_id: u64, neg_risk: bool) -> Result<String> {
 }
 
 // ============================================================================
-// ORDER TYPES FOR IOC/FOK
+// ORDER TYPES FOR FAK/FOK
 // ============================================================================
 
 /// Order type for Polymarket
@@ -348,8 +348,8 @@ pub enum PolyOrderType {
     GTD,
     /// Fill Or Kill - must fill entirely or cancel
     FOK,
-    /// Immediate Or Cancel - fill what you can, cancel rest
-    IOC,
+    /// Fill And Kill - fill what you can, cancel rest
+    FAK,
 }
 
 impl PolyOrderType {
@@ -358,7 +358,7 @@ impl PolyOrderType {
             PolyOrderType::GTC => "GTC",
             PolyOrderType::GTD => "GTD",
             PolyOrderType::FOK => "FOK",
-            PolyOrderType::IOC => "IOC",
+            PolyOrderType::FAK => "FAK",
         }
     }
 }
@@ -575,16 +575,16 @@ impl SharedAsyncClient {
         Ok(count)
     }
 
-    /// Execute IOC buy order - 
-    pub async fn buy_ioc(&self, token_id: &str, price: f64, size: f64) -> Result<PolyFillAsync> {
+    /// Execute FAK buy order - 
+    pub async fn buy_fak(&self, token_id: &str, price: f64, size: f64) -> Result<PolyFillAsync> {
         debug_assert!(!token_id.is_empty(), "token_id must not be empty");
         debug_assert!(price > 0.0 && price < 1.0, "price must be 0 < p < 1");
         debug_assert!(size >= 1.0, "size must be >= 1");
         self.execute_order(token_id, price, size, "BUY").await
     }
 
-    /// Execute IOC sell order - 
-    pub async fn sell_ioc(&self, token_id: &str, price: f64, size: f64) -> Result<PolyFillAsync> {
+    /// Execute FAK sell order - 
+    pub async fn sell_fak(&self, token_id: &str, price: f64, size: f64) -> Result<PolyFillAsync> {
         debug_assert!(!token_id.is_empty(), "token_id must not be empty");
         debug_assert!(price > 0.0 && price < 1.0, "price must be 0 < p < 1");
         debug_assert!(size >= 1.0, "size must be >= 1");
@@ -611,7 +611,7 @@ impl SharedAsyncClient {
         // Build signed order
         let signed = self.build_signed_order(token_id, price, size, side, neg_risk)?;
         // Owner must be the API key (not wallet address or funder!)
-        let body = signed.post_body(&self.creds.api_key, PolyOrderType::IOC.as_str());
+        let body = signed.post_body(&self.creds.api_key, PolyOrderType::FAK.as_str());
 
         // Post order
         let resp = self.inner.post_order_async(body, &self.creds).await?;
@@ -631,7 +631,7 @@ impl SharedAsyncClient {
         let order_price: f64 = order_info.price.parse().unwrap_or(price);
 
         tracing::debug!(
-            "[POLY-ASYNC] IOC {} {}: status={}, filled={:.2}/{:.2}, price={:.4}",
+            "[POLY-ASYNC] FAK {} {}: status={}, filled={:.2}/{:.2}, price={:.4}",
             side, order_id, order_info.status, filled_size, size, order_price
         );
 
