@@ -397,19 +397,13 @@ async fn send_arb_request(
     let (k_yes, k_no, k_yes_size, k_no_size) = market.kalshi.load();
     let (p_yes, p_no, p_yes_size, p_no_size) = market.poly.load();
 
-    // Priority order: cross-platform arbs first (more reliable)
+    // Cross-platform arbs only
     let (yes_price, no_price, yes_size, no_size, arb_type) = if arb_mask & 1 != 0 {
         // Poly YES + Kalshi NO
         (p_yes, k_no, p_yes_size, k_no_size, ArbType::PolyYesKalshiNo)
     } else if arb_mask & 2 != 0 {
         // Kalshi YES + Poly NO
         (k_yes, p_no, k_yes_size, p_no_size, ArbType::KalshiYesPolyNo)
-    } else if arb_mask & 4 != 0 {
-        // Poly only (both sides)
-        (p_yes, p_no, p_yes_size, p_no_size, ArbType::PolyOnly)
-    } else if arb_mask & 8 != 0 {
-        // Kalshi only (both sides)
-        (k_yes, k_no, k_yes_size, k_no_size, ArbType::KalshiOnly)
     } else {
         return;
     };

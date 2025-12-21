@@ -194,7 +194,6 @@ impl ExecutionEngine {
         self.release_in_flight_delayed(market_id);
 
         match result {
-            // Note: For same-platform arbs (PolyOnly/KalshiOnly), these are YES/NO fills, not platform fills
             Ok((yes_filled, no_filled, yes_cost, no_cost, yes_order_id, no_order_id)) => {
                 let matched = yes_filled.min(no_filled);
                 let success = matched > 0;
@@ -206,8 +205,6 @@ impl ExecutionEngine {
                     let (leg1_name, leg2_name) = match req.arb_type {
                         ArbType::PolyYesKalshiNo => ("P_yes", "K_no"),
                         ArbType::KalshiYesPolyNo => ("K_yes", "P_no"),
-                        ArbType::PolyOnly => ("P_yes", "P_no"),
-                        ArbType::KalshiOnly => ("K_yes", "K_no"),
                     };
                     warn!("[EXEC] ⚠️ Fill mismatch: {}={} {}={} (excess={})",
                         leg1_name, yes_filled, leg2_name, no_filled, excess);
@@ -244,8 +241,6 @@ impl ExecutionEngine {
                     let (platform1, side1, platform2, side2) = match req.arb_type {
                         ArbType::PolyYesKalshiNo => ("polymarket", "yes", "kalshi", "no"),
                         ArbType::KalshiYesPolyNo => ("kalshi", "yes", "polymarket", "no"),
-                        ArbType::PolyOnly => ("polymarket", "yes", "polymarket", "no"),
-                        ArbType::KalshiOnly => ("kalshi", "yes", "kalshi", "no"),
                     };
 
                     self.position_channel.record_fill(FillRecord::new(
@@ -321,40 +316,6 @@ impl ExecutionEngine {
                 let (kalshi_res, poly_res) = tokio::join!(kalshi_fut, poly_fut);
                 self.extract_cross_results(kalshi_res, poly_res)
             }
-
-            // === SAME-PLATFORM: Poly YES + Poly NO ===
-            ArbType::PolyOnly => {
-                let yes_fut = self.poly_async.buy_fak(
-                    &pair.poly_yes_token,
-                    cents_to_price(req.yes_price),
-                    contracts as f64,
-                );
-                let no_fut = self.poly_async.buy_fak(
-                    &pair.poly_no_token,
-                    cents_to_price(req.no_price),
-                    contracts as f64,
-                );
-                let (yes_res, no_res) = tokio::join!(yes_fut, no_fut);
-                self.extract_poly_only_results(yes_res, no_res)
-            }
-
-            // === SAME-PLATFORM: Kalshi YES + Kalshi NO ===
-            ArbType::KalshiOnly => {
-                let yes_fut = self.kalshi.buy_ioc(
-                    &pair.kalshi_market_ticker,
-                    "yes",
-                    req.yes_price as i64,
-                    contracts,
-                );
-                let no_fut = self.kalshi.buy_ioc(
-                    &pair.kalshi_market_ticker,
-                    "no",
-                    req.no_price as i64,
-                    contracts,
-                );
-                let (yes_res, no_res) = tokio::join!(yes_fut, no_fut);
-                self.extract_kalshi_only_results(yes_res, no_res)
-            }
         }
     }
 
@@ -389,71 +350,6 @@ impl ExecutionEngine {
         Ok((kalshi_filled, poly_filled, kalshi_cost, poly_cost, kalshi_order_id, poly_order_id))
     }
 
-    /// Extract results from Poly-only execution (same-platform)
-    fn extract_poly_only_results(
-        &self,
-        yes_res: Result<crate::polymarket_clob::PolyFillAsync>,
-        no_res: Result<crate::polymarket_clob::PolyFillAsync>,
-    ) -> Result<(i64, i64, i64, i64, String, String)> {
-        let (yes_filled, yes_cost, yes_order_id) = match yes_res {
-            Ok(fill) => {
-                ((fill.filled_size as i64), (fill.fill_cost * 100.0) as i64, fill.order_id)
-            }
-            Err(e) => {
-                warn!("[EXEC] Poly YES failed: {}", e);
-                (0, 0, String::new())
-            }
-        };
-
-        let (no_filled, no_cost, no_order_id) = match no_res {
-            Ok(fill) => {
-                ((fill.filled_size as i64), (fill.fill_cost * 100.0) as i64, fill.order_id)
-            }
-            Err(e) => {
-                warn!("[EXEC] Poly NO failed: {}", e);
-                (0, 0, String::new())
-            }
-        };
-
-        // For same-platform, return YES as "kalshi" slot and NO as "poly" slot
-        // This keeps the existing result handling logic working
-        Ok((yes_filled, no_filled, yes_cost, no_cost, yes_order_id, no_order_id))
-    }
-
-    /// Extract results from Kalshi-only execution (same-platform)
-    fn extract_kalshi_only_results(
-        &self,
-        yes_res: Result<crate::kalshi::KalshiOrderResponse>,
-        no_res: Result<crate::kalshi::KalshiOrderResponse>,
-    ) -> Result<(i64, i64, i64, i64, String, String)> {
-        let (yes_filled, yes_cost, yes_order_id) = match yes_res {
-            Ok(resp) => {
-                let filled = resp.order.filled_count();
-                let cost = resp.order.taker_fill_cost.unwrap_or(0) + resp.order.maker_fill_cost.unwrap_or(0);
-                (filled, cost, resp.order.order_id)
-            }
-            Err(e) => {
-                warn!("[EXEC] Kalshi YES failed: {}", e);
-                (0, 0, String::new())
-            }
-        };
-
-        let (no_filled, no_cost, no_order_id) = match no_res {
-            Ok(resp) => {
-                let filled = resp.order.filled_count();
-                let cost = resp.order.taker_fill_cost.unwrap_or(0) + resp.order.maker_fill_cost.unwrap_or(0);
-                (filled, cost, resp.order.order_id)
-            }
-            Err(e) => {
-                warn!("[EXEC] Kalshi NO failed: {}", e);
-                (0, 0, String::new())
-            }
-        };
-
-        // For same-platform, return YES as "kalshi" slot and NO as "poly" slot
-        Ok((yes_filled, no_filled, yes_cost, no_cost, yes_order_id, no_order_id))
-    }
-
     /// Background auto-close for mismatched fills
     async fn auto_close_background(
         kalshi: Arc<KalshiApiClient>,
@@ -485,40 +381,6 @@ impl ExecutionEngine {
         };
 
         match arb_type {
-            ArbType::PolyOnly => {
-                let (token, side, price) = if yes_filled > no_filled {
-                    (&poly_yes_token, "yes", yes_price)
-                } else {
-                    (&poly_no_token, "no", no_price)
-                };
-                let close_price = cents_to_price((price as i16).saturating_sub(10).max(1) as u16);
-
-                info!("[EXEC] 🔄 Waiting 2s for Poly settlement before auto-close ({} {} contracts)", excess, side);
-                tokio::time::sleep(Duration::from_secs(2)).await;
-
-                match poly_async.sell_fak(token, close_price, excess as f64).await {
-                    Ok(fill) => log_close_pnl("Poly", fill.filled_size as i64, (fill.fill_cost * 100.0) as i64),
-                    Err(e) => warn!("[EXEC] ⚠️ Failed to close Poly excess: {}", e),
-                }
-            }
-
-            ArbType::KalshiOnly => {
-                let (side, price) = if yes_filled > no_filled {
-                    ("yes", yes_price as i64)
-                } else {
-                    ("no", no_price as i64)
-                };
-                let close_price = price.saturating_sub(10).max(1);
-
-                match kalshi.sell_ioc(&kalshi_ticker, side, close_price, excess).await {
-                    Ok(resp) => {
-                        let proceeds = resp.order.taker_fill_cost.unwrap_or(0) + resp.order.maker_fill_cost.unwrap_or(0);
-                        log_close_pnl("Kalshi", resp.order.filled_count(), proceeds);
-                    }
-                    Err(e) => warn!("[EXEC] ⚠️ Failed to close Kalshi excess: {}", e),
-                }
-            }
-
             ArbType::PolyYesKalshiNo => {
                 if yes_filled > no_filled {
                     // Poly YES excess

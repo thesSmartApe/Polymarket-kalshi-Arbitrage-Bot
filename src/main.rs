@@ -171,7 +171,7 @@ async fn main() -> Result<()> {
     let exec_handle = tokio::spawn(run_execution_loop(exec_rx, engine));
 
     // === TEST MODE: Inject fake arb after delay ===
-    // TEST_ARB=1 to enable, TEST_ARB_TYPE=poly_yes_kalshi_no|kalshi_yes_poly_no|poly_only|kalshi_only
+    // TEST_ARB=1 to enable, TEST_ARB_TYPE=poly_yes_kalshi_no|kalshi_yes_poly_no
     let test_arb = std::env::var("TEST_ARB").map(|v| v == "1" || v == "true").unwrap_or(false);
     if test_arb {
         let test_state = state.clone();
@@ -188,15 +188,13 @@ async fn main() -> Result<()> {
             info!("[TEST] Will inject fake arb in 10 seconds...");
             tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
 
-            // Parse arb type
+            // Parse arb type (cross-platform only)
             let arb_type = match arb_type_str.to_lowercase().as_str() {
                 "poly_yes_kalshi_no" | "pykn" | "0" => ArbType::PolyYesKalshiNo,
                 "kalshi_yes_poly_no" | "kypn" | "1" => ArbType::KalshiYesPolyNo,
-                "poly_only" | "poly" | "2" => ArbType::PolyOnly,
-                "kalshi_only" | "kalshi" | "3" => ArbType::KalshiOnly,
                 _ => {
                     warn!("[TEST] Unknown TEST_ARB_TYPE='{}', defaulting to PolyYesKalshiNo", arb_type_str);
-                    warn!("[TEST] Valid values: poly_yes_kalshi_no, kalshi_yes_poly_no, poly_only, kalshi_only");
+                    warn!("[TEST] Valid values: poly_yes_kalshi_no, kalshi_yes_poly_no");
                     ArbType::PolyYesKalshiNo
                 }
             };
@@ -205,8 +203,6 @@ async fn main() -> Result<()> {
             let (yes_price, no_price, description) = match arb_type {
                 ArbType::PolyYesKalshiNo => (40, 50, "P_yes=40¢ + K_no=50¢ + fee≈2¢ = 92¢ → 8¢ profit"),
                 ArbType::KalshiYesPolyNo => (40, 50, "K_yes=40¢ + P_no=50¢ + fee≈2¢ = 92¢ → 8¢ profit"),
-                ArbType::PolyOnly => (48, 50, "P_yes=48¢ + P_no=50¢ + fee=0¢ = 98¢ → 2¢ profit (NO FEES!)"),
-                ArbType::KalshiOnly => (44, 44, "K_yes=44¢ + K_no=44¢ + fee≈4¢ = 92¢ → 8¢ profit (DOUBLE FEES)"),
             };
 
             // Find first market with valid state

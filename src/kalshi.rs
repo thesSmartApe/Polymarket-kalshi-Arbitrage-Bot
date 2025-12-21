@@ -642,14 +642,11 @@ async fn send_kalshi_arb_request(
     let (k_yes, k_no, k_yes_size, k_no_size) = market.kalshi.load();
     let (p_yes, p_no, p_yes_size, p_no_size) = market.poly.load();
 
+    // Cross-platform arbs only
     let (yes_price, no_price, yes_size, no_size, arb_type) = if arb_mask & 1 != 0 {
         (p_yes, k_no, p_yes_size, k_no_size, ArbType::PolyYesKalshiNo)
     } else if arb_mask & 2 != 0 {
         (k_yes, p_no, k_yes_size, p_no_size, ArbType::KalshiYesPolyNo)
-    } else if arb_mask & 4 != 0 {
-        (p_yes, p_no, p_yes_size, p_no_size, ArbType::PolyOnly)
-    } else if arb_mask & 8 != 0 {
-        (k_yes, k_no, k_yes_size, k_no_size, ArbType::KalshiOnly)
     } else {
         return;
     };

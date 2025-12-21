@@ -151,10 +151,10 @@ impl AtomicMarketState {
         }
     }
 
+    /// Check for cross-platform arbitrage opportunities only
+    /// Returns bitmask: bit 0 = Poly YES + Kalshi NO, bit 1 = Kalshi YES + Poly NO
     #[inline(always)]
     pub fn check_arbs(&self, threshold_cents: PriceCents) -> u8 {
-        use wide::{i16x8, CmpLt};
-
         let (k_yes, k_no, _, _) = self.kalshi.load();
         let (p_yes, p_no, _, _) = self.poly.load();
 
@@ -165,22 +165,14 @@ impl AtomicMarketState {
         let k_yes_fee = KALSHI_FEE_TABLE[k_yes as usize];
         let k_no_fee = KALSHI_FEE_TABLE[k_no as usize];
 
-        let costs = i16x8::new([
-            (p_yes + k_no + k_no_fee) as i16,
-            (k_yes + k_yes_fee + p_no) as i16,
-            (p_yes + p_no) as i16,
-            (k_yes + k_yes_fee + k_no + k_no_fee) as i16,
-            i16::MAX, i16::MAX, i16::MAX, i16::MAX,
-        ]);
-
-        let cmp = costs.cmp_lt(i16x8::splat(threshold_cents as i16));
-        let arr = cmp.to_array();
+        // Only check cross-platform arbs (no same-platform poly-poly or kalshi-kalshi)
+        let cost1 = (p_yes + k_no + k_no_fee) as i16;  // Poly YES + Kalshi NO
+        let cost2 = (k_yes + k_yes_fee + p_no) as i16; // Kalshi YES + Poly NO
+        let threshold = threshold_cents as i16;
 
         let mut mask = 0u8;
-        if arr[0] != 0 { mask |= 1; }
-        if arr[1] != 0 { mask |= 2; }
-        if arr[2] != 0 { mask |= 4; }
-        if arr[3] != 0 { mask |= 8; }
+        if cost1 < threshold { mask |= 1; }
+        if cost2 < threshold { mask |= 2; }
         mask
     }
 }
@@ -247,17 +239,13 @@ pub fn parse_price(s: &str) -> PriceCents {
         .unwrap_or(0)
 }
 
-/// Arb type - determines execution strategy
+/// Arb type - determines execution strategy (cross-platform only)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArbType {
     /// Poly YES + Kalshi NO (cross-platform)
     PolyYesKalshiNo,
     /// Kalshi YES + Poly NO (cross-platform)
     KalshiYesPolyNo,
-    /// Poly YES + Poly NO (same-platform)
-    PolyOnly,
-    /// Kalshi YES + Kalshi NO (same-platform)
-    KalshiOnly,
 }
 
 /// Execution request
@@ -291,10 +279,6 @@ impl FastExecutionRequest {
             // Cross-platform: fee on the Kalshi side only
             ArbType::PolyYesKalshiNo => kalshi_fee_cents(self.no_price),
             ArbType::KalshiYesPolyNo => kalshi_fee_cents(self.yes_price),
-            // Poly-only: no fees
-            ArbType::PolyOnly => 0,
-            // Kalshi-only: fees on both sides
-            ArbType::KalshiOnly => kalshi_fee_cents(self.yes_price) + kalshi_fee_cents(self.no_price),
         }
     }
 }
@@ -711,28 +695,6 @@ mod tests {
     }
 
     #[test]
-    fn test_check_arbs_poly_only() {
-        // Poly YES 48¢ + Poly NO 50¢ = 98¢ → ARB (no fees!)
-        let state = make_market_state(60, 60, 48, 50);
-
-        let mask = state.check_arbs(100);
-
-        assert!(mask & 4 != 0, "Should detect Poly-only arb (bit 2)");
-    }
-
-    #[test]
-    fn test_check_arbs_kalshi_only() {
-        // Kalshi YES 44¢ + Kalshi NO 44¢ = 88¢ raw
-        // Double fee: 2¢ + 2¢ = 4¢
-        // Effective = 92¢ → ARB
-        let state = make_market_state(44, 44, 60, 60);
-
-        let mask = state.check_arbs(100);
-
-        assert!(mask & 8 != 0, "Should detect Kalshi-only arb (bit 3)");
-    }
-
-    #[test]
     fn test_check_arbs_no_arbs() {
         // All prices efficient - no arbs
         // Cross: 55 + 55 + 2 fee = 112 > 100
@@ -771,18 +733,19 @@ mod tests {
 
     #[test]
     fn test_check_arbs_multiple_arbs() {
-        // Scenario where multiple arbs exist
-        // Kalshi: YES=40, NO=40 (sum=80+4fee=84)
-        // Poly: YES=40, NO=40 (sum=80, no fees)
+        // Scenario where both cross-platform arbs exist
+        // Poly YES 40¢ + Kalshi NO 40¢ + fee 2¢ = 82¢
+        // Kalshi YES 40¢ + Poly NO 40¢ + fee 2¢ = 82¢
         let state = make_market_state(40, 40, 40, 40);
 
         let mask = state.check_arbs(100);
 
-        // Should detect all 4 combinations
+        // Should detect both cross-platform arbs
         assert!(mask & 1 != 0, "Should detect Poly YES + Kalshi NO");
         assert!(mask & 2 != 0, "Should detect Kalshi YES + Poly NO");
-        assert!(mask & 4 != 0, "Should detect Poly-only");
-        assert!(mask & 8 != 0, "Should detect Kalshi-only");
+        // Same-platform arbs are no longer detected
+        assert!(mask & 4 == 0, "Should NOT detect Poly-only (removed)");
+        assert!(mask & 8 == 0, "Should NOT detect Kalshi-only (removed)");
     }
 
     // =========================================================================
@@ -941,44 +904,6 @@ mod tests {
     }
 
     #[test]
-    fn test_execution_request_profit_cents_poly_only() {
-        // Poly YES 40¢ + Poly NO 48¢ = 88¢
-        // No fees on Polymarket
-        // Profit = 100 - 88 - 0 = 12¢
-        let req = FastExecutionRequest {
-            market_id: 0,
-            yes_price: 40,
-            no_price: 48,
-            yes_size: 1000,
-            no_size: 1000,
-            arb_type: ArbType::PolyOnly,
-            detected_ns: 0,
-        };
-
-        assert_eq!(req.profit_cents(), 12);
-        assert_eq!(req.estimated_fee_cents(), 0);
-    }
-
-    #[test]
-    fn test_execution_request_profit_cents_kalshi_only() {
-        // Kalshi YES 40¢ + Kalshi NO 44¢ = 84¢
-        // Kalshi fee on both: 2¢ + 2¢ = 4¢
-        // Profit = 100 - 84 - 4 = 12¢
-        let req = FastExecutionRequest {
-            market_id: 0,
-            yes_price: 40,
-            no_price: 44,
-            yes_size: 1000,
-            no_size: 1000,
-            arb_type: ArbType::KalshiOnly,
-            detected_ns: 0,
-        };
-
-        assert_eq!(req.profit_cents(), 12);
-        assert_eq!(req.estimated_fee_cents(), kalshi_fee_cents(40) + kalshi_fee_cents(44));
-    }
-
-    #[test]
     fn test_execution_request_negative_profit() {
         // Prices too high - no profit
         let req = FastExecutionRequest {
@@ -1019,30 +944,6 @@ mod tests {
             detected_ns: 0,
         };
         assert_eq!(req2.estimated_fee_cents(), kalshi_fee_cents(40));
-
-        // PolyOnly → no fees
-        let req3 = FastExecutionRequest {
-            market_id: 0,
-            yes_price: 40,
-            no_price: 50,
-            yes_size: 1000,
-            no_size: 1000,
-            arb_type: ArbType::PolyOnly,
-            detected_ns: 0,
-        };
-        assert_eq!(req3.estimated_fee_cents(), 0);
-
-        // KalshiOnly → fees on both sides
-        let req4 = FastExecutionRequest {
-            market_id: 0,
-            yes_price: 40,
-            no_price: 50,
-            yes_size: 1000,
-            no_size: 1000,
-            arb_type: ArbType::KalshiOnly,
-            detected_ns: 0,
-        };
-        assert_eq!(req4.estimated_fee_cents(), kalshi_fee_cents(40) + kalshi_fee_cents(50));
     }
 
     // =========================================================================
