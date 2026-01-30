@@ -1,6 +1,12 @@
-# Polymarket-Kalshi Arbitrage Bot
+# Jerrrix Poly-Kalshi Arbitrage Bot
 
-A arbitrage system for cross-platform prediction market trading between Kalshi and Polymarket.
+A cross-platform arbitrage system for prediction market trading between **Kalshi** and **Polymarket**.
+
+**Author:** [@jerrrix1](https://t.me/jerrrix1) · **GitHub:** [thesSmartApe/Polymarket-kalshi-Arbitrage-Bot](https://github.com/thesSmartApe/Polymarket-kalshi-Arbitrage-Bot)
+
+For detailed setup and configuration, see the **[docs](docs/)** folder (getting started, configuration, trading strategy).
+
+---
 
 ## Quick Start
 
@@ -11,7 +17,7 @@ A arbitrage system for cross-platform prediction market trading between Kalshi a
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # Build
-cd e_poly_kalshi_arb
+cd Polymarket-kalshi-Arbitrage-Bot
 cargo build --release
 ```
 
@@ -60,8 +66,8 @@ DRY_RUN=0 dotenvx run -- cargo run --release
 
 | Variable          | Default | Description                                           |
 | ----------------- | ------- | ----------------------------------------------------- |
-| `DRY_RUN`         | `1`     | `1` = paper trading (no orders), `0` = live execution |
-| `RUST_LOG`        | `info`  | Log level: `error`, `warn`, `info`, `debug`, `trace`  |
+| `DRY_RUN`         | `1`     | `1` = paper trading (no orders), `0` = live execution   |
+| `RUST_LOG`        | `info`  | Log level: `error`, `warn`, `info`, `debug`, `trace`   |
 | `FORCE_DISCOVERY` | `0`     | `1` = re-fetch market mappings (ignore cache)         |
 | `PRICE_LOGGING`   | `0`     | `1` = verbose price update logging                    |
 
@@ -70,14 +76,14 @@ DRY_RUN=0 dotenvx run -- cargo run --release
 | Variable        | Default              | Description                                                                                    |
 | --------------- | -------------------- | ---------------------------------------------------------------------------------------------- |
 | `TEST_ARB`      | `0`                  | `1` = inject synthetic arb opportunity for testing                                             |
-| `TEST_ARB_TYPE` | `poly_yes_kalshi_no` | Arb type: `poly_yes_kalshi_no`, `kalshi_yes_poly_no`, `poly_same_market`, `kalshi_same_market` |
+| `TEST_ARB_TYPE` | `poly_yes_kalshi_no` | Arb type: `poly_yes_kalshi_no`, `kalshi_yes_poly_no`, `poly_same_market`, `kalshi_same_market`  |
 
 ### Circuit Breaker
 
 | Variable                     | Default | Description                                 |
 | ---------------------------- | ------- | ------------------------------------------- |
 | `CB_ENABLED`                 | `true`  | Enable/disable circuit breaker              |
-| `CB_MAX_POSITION_PER_MARKET` | `100`   | Max contracts per market                    |
+| `CB_MAX_POSITION_PER_MARKET`  | `100`   | Max contracts per market                    |
 | `CB_MAX_TOTAL_POSITION`      | `500`   | Max total contracts across all markets      |
 | `CB_MAX_DAILY_LOSS`          | `5000`  | Max daily loss in cents before halt         |
 | `CB_MAX_CONSECUTIVE_ERRORS`  | `5`     | Consecutive errors before halt              |
@@ -165,11 +171,11 @@ Profit:           2¢ per contract
 | `poly_yes_kalshi_no` | Polymarket YES      | Kalshi NO     |
 | `kalshi_yes_poly_no` | Kalshi YES          | Polymarket NO |
 | `poly_same_market`   | Polymarket YES + NO | (rare)        |
-| `kalshi_same_market` | Kalshi YES + NO     | (rare)        |
+| `kalshi_same_market`  | Kalshi YES + NO     | (rare)        |
 
 ### Fee Handling
 
-- **Kalshi**: `ceil(0.07 × contracts × price × (1-price))` - factored into arb detection
+- **Kalshi**: `ceil(0.07 × contracts × price × (1-price))` — factored into arb detection
 - **Polymarket**: Zero trading fees
 
 ---
@@ -184,11 +190,11 @@ src/
 ├── position_tracker.rs  # Channel-based fill recording, P&L tracking
 ├── circuit_breaker.rs   # Risk limits, error tracking, auto-halt
 ├── discovery.rs         # Kalshi↔Polymarket market matching
-├── cache.rs             # Team code mappings (EPL, NBA, etc.)
-├── kalshi.rs            # Kalshi REST/WS client
-├── polymarket.rs        # Polymarket WS client
-├── polymarket_clob.rs   # Polymarket CLOB order execution
-└── config.rs            # League configs, thresholds
+├── cache.rs            # Team code mappings (EPL, NBA, etc.)
+├── kalshi.rs           # Kalshi REST/WS client
+├── polymarket.rs       # Polymarket WS client
+├── polymarket_clob.rs  # Polymarket CLOB order execution
+└── config.rs           # League configs, thresholds
 ```
 
 ---
@@ -228,4 +234,9 @@ cargo bench
 - [ ] Risk limit configuration UI
 - [ ] Multi-account support
 
-# poly-kalshi-arb
+---
+
+## Contact
+
+- **Telegram:** [@jerrrix1](https://t.me/jerrrix1)
+- **GitHub:** [thesSmartApe/Polymarket-kalshi-Arbitrage-Bot](https://github.com/thesSmartApe/Polymarket-kalshi-Arbitrage-Bot)

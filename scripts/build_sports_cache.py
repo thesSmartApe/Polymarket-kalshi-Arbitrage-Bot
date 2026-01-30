@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Sports neg_risk cache warmer (async version).
+Jerrrix Poly-Kalshi Arb Bot: sports neg_risk cache warmer (async).
+Populates .clob_market_cache.json for Polymarket CLOB client.
 """
 
 import asyncio

@@ -1,4 +1,4 @@
-// src/lib.rs
+// src/lib.rs — Jerrrix Poly-Kalshi Arbitrage Bot
 
 pub mod cache;
 pub mod circuit_breaker;

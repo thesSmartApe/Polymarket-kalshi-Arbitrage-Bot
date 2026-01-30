@@ -1,4 +1,4 @@
-//! Polymarket-Kalshi Arbitrage Bot v2.0
+//! Jerrrix Poly-Kalshi Arbitrage Bot v2.0
 //!
 //! Strategy: BUY YES on Platform A + BUY NO on Platform B
 //! Arb exists when: YES_ask + NO_ask < $1.00
@@ -40,11 +40,11 @@ async fn main() -> Result<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive("arb_bot=info".parse().unwrap()),
+                .add_directive("jerrrix_arb_bot=info".parse().unwrap()),
         )
         .init();
 
-    info!("🎯 Arb Bot v2.0");
+    info!("🎯 Jerrrix Arb Bot v2.0");
     info!("   Threshold: <{:.1}¢ for {:.1}% profit",
           ARB_THRESHOLD * 100.0, (1.0 - ARB_THRESHOLD) * 100.0);
     info!("   Leagues: {:?}", ENABLED_LEAGUES);
